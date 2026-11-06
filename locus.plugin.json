@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 2,
+  "id": "openai-image",
+  "name": "OpenAI Image",
+  "version": "0.2.0",
+  "compatibility": {
+    "projectIndependent": true,
+    "locus": ">=0.9.3 <0.11.0"
+  },
+  "components": {
+    "views": [{ "id": "image-studio", "path": "views/image-studio" }]
+  },
+  "contributes": {
+    "workspace": { "defaultEnablement": "disabled" },
+    "capabilities": ["codex.images"],
+    "toolHandler": { "entry": "client/tools.ts" },
+    "settings": {
+      "apiKey": {
+        "type": "secret",
+        "title": { "en": "API key", "zh": "API Key" },
+        "description": {
+          "en": "OpenAI Platform API key. Stored in the system keychain and only passed to this plugin's tools. Not needed while the Codex subscription is allowed under Permissions below.",
+          "zh": "OpenAI Platform 的 API Key。保存在系统钥匙串中，只交给本插件的工具。在下方“授权”中允许使用 Codex 订阅时不需要。"
+        }
+      },
+      "baseUrl": {
+        "type": "string",
+        "default": "https://api.openai.com/v1",
+        "maxLength": 512,
+        "title": { "en": "API base URL", "zh": "接口地址" },
+        "description": {
+          "en": "Base URL of the OpenAI-compatible API, ending before /images.",
+          "zh": "兼容 OpenAI 的接口地址，不含 /images 部分。"
+        }
+      },
+      "organization": {
+        "type": "string",
+        "default": "",
+        "maxLength": 128,
+        "title": { "en": "Organization ID", "zh": "组织 ID" },
+        "description": {
+          "en": "Optional. Sent as the OpenAI-Organization header.",
+          "zh": "选填。作为 OpenAI-Organization 请求头发送。"
+        }
+      },
+      "model": {
+        "type": "string",
+        "default": "gpt-image-2.6-flare",
+        "maxLength": 128,
+        "suggestions": ["gpt-image-2.6-flare", "gpt-image-2.6-sunburst", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-2", "gpt-image-1.5", "gpt-image-1-mini", "chatgpt-image-latest"],
+        "title": { "en": "Model", "zh": "模型" },
+        "description": {
+          "en": "API key mode only. Flare is faster; Sunburst gives higher quality and steadier edits. On the Codex subscription the server picks the model.",
+          "zh": "仅 API Key 模式生效。Flare 更快，Sunburst 质量更高、编辑时更稳定。Codex 订阅模式由服务端决定模型。"
+        }
+      },
+      "defaultSize": {
+        "type": "string",
+        "default": "auto",
+        "maxLength": 16,
+        "suggestions": ["auto", "1024x1024", "1536x1024", "1024x1536"],
+        "title": { "en": "Default size", "zh": "默认尺寸" },
+        "description": {
+          "en": "auto, 1024x1024, 1536x1024, 1024x1536, or WIDTHxHEIGHT where the model supports it.",
+          "zh": "auto、1024x1024、1536x1024、1024x1536，或模型支持时的 宽x高。"
+        }
+      },
+      "defaultQuality": {
+        "type": "enum",
+        "enum": ["auto", "low", "medium", "high", "xhigh", "max"],
+        "default": "auto",
+        "title": { "en": "Default quality", "zh": "默认质量" }
+      },
+      "defaultBackground": {
+        "type": "enum",
+        "enum": ["auto", "opaque", "transparent"],
+        "default": "auto",
+        "title": { "en": "Default background", "zh": "默认背景" },
+        "description": {
+          "en": "Transparent backgrounds need PNG or WebP output.",
+          "zh": "透明背景需要 PNG 或 WebP 格式。"
+        }
+      },
+      "defaultFormat": {
+        "type": "enum",
+        "enum": ["png", "jpeg", "webp"],
+        "default": "png",
+        "title": { "en": "Default format", "zh": "默认格式" }
+      },
+      "outputDir": {
+        "type": "path",
+        "default": "Locus/generated/images",
+        "scope": "project",
+        "title": { "en": "Output folder", "zh": "输出目录" },
+        "description": {
+          "en": "Where images and history.jsonl are saved. Relative paths start at the workspace root.",
+          "zh": "图片和 history.jsonl 的保存位置。相对路径从工作区根目录开始。"
+        }
+      },
+      "attachToModel": {
+        "type": "bool",
+        "default": true,
+        "title": { "en": "Show generated images to the model", "zh": "把生成的图片回传给模型" },
+        "description": {
+          "en": "When off, the model only receives the saved file paths.",
+          "zh": "关闭后模型只收到保存路径。"
+        }
+      },
+      "showStatusIcon": {
+        "type": "bool",
+        "default": true,
+        "title": { "en": "Show the status icon in the chat input", "zh": "在输入栏显示状态图标" }
+      }
+    },
+    "tools": [
+      {
+        "name": "image_generate",
+        "description": "Generate images from a text prompt with the OpenAI Images API and save them in the workspace. Returns the saved paths, the model's revised prompt and token usage. Use image_edit instead when reference images or a mask are involved. When the user runs it on their Codex subscription, only prompt, background and fileName take effect (the server picks model, size and quality and returns one image); the reply says which arguments were ignored.",
+        "handler": "client",
+        "runtime": "python",
+        "path": "tools/openai_image.py",
+        "args": ["generate"],
+        "loadMode": "lazy",
+        "timeoutMs": 600000,
+        "mutatesWorkspace": true,
+        "settings": ["apiKey", "baseUrl", "organization", "model", "defaultSize", "defaultQuality", "defaultBackground", "defaultFormat", "outputDir", "attachToModel"],
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "prompt": { "type": "string", "description": "What to draw. Be specific about subject, style, composition and any text to render." },
+            "size": { "type": "string", "description": "auto, 1024x1024, 1536x1024 (landscape), 1024x1536 (portrait), or WIDTHxHEIGHT if the model supports it. Defaults to the plugin setting." },
+            "quality": { "type": "string", "enum": ["auto", "low", "medium", "high", "xhigh", "max"], "description": "Defaults to the plugin setting." },
+            "background": { "type": "string", "enum": ["auto", "opaque", "transparent"], "description": "transparent needs png or webp. Defaults to the plugin setting." },
+            "outputFormat": { "type": "string", "enum": ["png", "jpeg", "webp"], "description": "Defaults to the plugin setting." },
+            "n": { "type": "integer", "minimum": 1, "maximum": 4, "description": "Number of images, 1-4. Default 1." },
+            "fileName": { "type": "string", "description": "Optional base file name without folder or extension." },
+            "model": { "type": "string", "description": "Optional model override. Leave unset to use the plugin setting." }
+          },
+          "required": ["prompt"]
+        }
+      },
+      {
+        "name": "image_edit",
+        "description": "Edit or combine existing images with the OpenAI Images API: pass workspace image paths as references (and optionally a PNG mask whose transparent area marks what to change) plus a prompt describing the result. Saves the results in the workspace and returns their paths. On the user's Codex subscription at most 5 references are accepted, masks are not, and only prompt, images, background and fileName take effect.",
+        "handler": "client",
+        "runtime": "python",
+        "path": "tools/openai_image.py",
+        "args": ["edit"],
+        "loadMode": "lazy",
+        "timeoutMs": 600000,
+        "mutatesWorkspace": true,
+        "settings": ["apiKey", "baseUrl", "organization", "model", "defaultSize", "defaultQuality", "defaultBackground", "defaultFormat", "outputDir", "attachToModel"],
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "prompt": { "type": "string", "description": "The desired result." },
+            "images": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1,
+              "maxItems": 16,
+              "description": "Reference image paths (png, jpeg or webp), relative to the workspace root or absolute."
+            },
+            "mask": { "type": "string", "description": "Optional PNG mask for the first image; fully transparent pixels mark the area to edit." },
+            "inputFidelity": { "type": "string", "enum": ["high", "low"], "description": "How closely to keep details such as faces and logos from the references." },
+            "size": { "type": "string", "description": "auto, 1024x1024, 1536x1024, 1024x1536, or WIDTHxHEIGHT if the model supports it." },
+            "quality": { "type": "string", "enum": ["auto", "low", "medium", "high", "xhigh", "max"] },
+            "background": { "type": "string", "enum": ["auto", "opaque", "transparent"] },
+            "outputFormat": { "type": "string", "enum": ["png", "jpeg", "webp"] },
+            "n": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "fileName": { "type": "string", "description": "Optional base file name without folder or extension." },
+            "model": { "type": "string", "description": "Optional model override." }
+          },
+          "required": ["prompt", "images"]
+        }
+      }
+    ],
+    "client": {
+      "entry": "client/index.ts",
+      "contributions": [
+        {
+          "slot": "chat.input.status",
+          "id": "image",
+          "icon": "image",
+          "title": { "en": "Image generation", "zh": "图片生成" },
+          "when": { "setting": "showStatusIcon" }
+        }
+      ]
+    }
+  }
+}
