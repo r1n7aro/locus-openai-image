@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "openai-image",
   "name": "OpenAI Image",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "compatibility": {
     "projectIndependent": true,
     "locus": ">=0.9.3 <0.11.0"
@@ -61,15 +61,19 @@
         "suggestions": ["auto", "1024x1024", "1536x1024", "1024x1536"],
         "title": { "en": "Default size", "zh": "默认尺寸" },
         "description": {
-          "en": "auto, 1024x1024, 1536x1024, 1024x1536, or WIDTHxHEIGHT where the model supports it.",
-          "zh": "auto、1024x1024、1536x1024、1024x1536，或模型支持时的 宽x高。"
+          "en": "API key mode only. auto, 1024x1024, 1536x1024, 1024x1536, or WIDTHxHEIGHT where the model supports it. On the Codex subscription the server picks the size.",
+          "zh": "仅 API Key 模式生效。auto、1024x1024、1536x1024、1024x1536，或模型支持时的 宽x高。Codex 订阅模式由服务端决定尺寸。"
         }
       },
       "defaultQuality": {
         "type": "enum",
         "enum": ["auto", "low", "medium", "high", "xhigh", "max"],
         "default": "auto",
-        "title": { "en": "Default quality", "zh": "默认质量" }
+        "title": { "en": "Default quality", "zh": "默认质量" },
+        "description": {
+          "en": "API key mode only. xhigh and max are documented for the gpt-image-2.5 models. On the Codex subscription the server picks the quality.",
+          "zh": "仅 API Key 模式生效。xhigh 和 max 只写明了 gpt-image-2.5 系列支持。Codex 订阅模式由服务端决定质量。"
+        }
       },
       "defaultBackground": {
         "type": "enum",
@@ -85,7 +89,11 @@
         "type": "enum",
         "enum": ["png", "jpeg", "webp"],
         "default": "png",
-        "title": { "en": "Default format", "zh": "默认格式" }
+        "title": { "en": "Default format", "zh": "默认格式" },
+        "description": {
+          "en": "API key mode only. The Codex subscription returns PNG.",
+          "zh": "仅 API Key 模式生效。Codex 订阅模式返回 PNG。"
+        }
       },
       "outputDir": {
         "type": "path",
