@@ -1,15 +1,14 @@
 <script setup lang="ts">
 // Popover of the image status icon, built from the same parts as the
 // built-in status popovers: the image source as a segmented choice, then a
-// grid of secondary labels and controls, then actions. Everything arrives
-// through props injected by index.ts; the component never sees the plugin
-// context. The source switch is Locus's own `PluginCapabilityField`: only the
-// user's click grants the Codex subscription.
+// grid of secondary labels and values, then actions. The choice writes the
+// `imageSource` setting; the Codex side stays disabled until the user grants
+// the `codex.images` permission on the Settings tab, and the switch is
+// hidden while signed out of Codex. Everything arrives through props
+// injected by index.ts; the component never sees the plugin context.
 import { computed, ref } from "vue";
-// `PluginCapabilityField` is undefined on hosts older than it: the source is
-// then shown read only (switch it on the Settings tab).
-import { PluginCapabilityField, PluginSecretField } from "@locus/plugin-runtime";
-import { BaseButton, BaseDropdown, BaseSwitch } from "@locus/components";
+import { PluginSecretField } from "@locus/plugin-runtime";
+import { BaseButton, BaseDropdown, BaseSegmented, BaseSwitch } from "@locus/components";
 import { modelHints } from "./hints";
 
 const props = defineProps({
@@ -17,22 +16,27 @@ const props = defineProps({
   activity: { type: Object, required: true },
   apiKey: { type: Object, required: true },
   codex: { type: Object, required: true },
+  codexPermission: { type: Object, required: true },
   settings: { type: Object, required: true },
   settingInfo: { type: Function, required: true },
   openStudio: { type: Function, required: true },
   openSettings: { type: Function, required: true },
-  disableInWorkspace: { type: Function, required: true },
 });
 
 const t = (key: string, ...args: unknown[]) => props.t(key, ...args) as string;
 const current = computed(() => (props.activity as any).value);
 const keyConfigured = computed(() => Boolean((props.apiKey as any).value?.configured));
-/** Granted and usable (a grant needs a Codex sign-in). */
+/** The source tool calls use now. */
 const onCodex = computed(() => Boolean((props.codex as any).value));
+const permission = computed(() => (props.codexPermission as any).value as { available: boolean; granted: boolean });
 const settings = props.settings as Record<string, any>;
 const error = ref<string | null>(null);
 const busy = ref(false);
 
+const sourceOptions = computed(() => [
+  { value: "apiKey", label: t("mode.apiKey") },
+  { value: "codex", label: t("mode.codex"), disabled: !permission.value.granted },
+]);
 const sizeOptions = computed(() => [
   { value: "auto", label: t("size.auto") },
   { value: "1024x1024", label: t("size.square") },
@@ -42,32 +46,26 @@ const sizeOptions = computed(() => [
 const qualityOptions = computed(() =>
   ["auto", "low", "medium", "high", "xhigh", "max"].map((value) => ({ value, label: t(`quality.${value}`) })));
 const modelSuggestions = computed<string[]>(() => (props.settingInfo as any)("model")?.kind?.suggestions ?? []);
-const hints = computed(() => (onCodex.value ? [] : modelHints({
+const hints = computed(() => modelHints({
   model: settings.model,
   size: settings.defaultSize,
   quality: settings.defaultQuality,
   background: settings.defaultBackground,
-}).map((hint) => t(hint.key, ...hint.args))));
+}).map((hint) => t(hint.key, ...hint.args)));
 const sizeLabel = computed(() =>
   sizeOptions.value.find((option) => option.value === settings.defaultSize)?.label ?? String(settings.defaultSize ?? ""));
 
 /** First line of the tool result without the colon that leads into the paths. */
 const lastSummary = computed(() => String(current.value.last?.summary ?? "").replace(/[:：]\s*$/, ""));
 
-const model = computed({
-  get: () => String(settings.model ?? ""),
-  set: (value: string) => {
-    const trimmed = value.trim();
-    if (trimmed && trimmed !== settings.model) settings.model = trimmed;
-  },
-});
-
-function commitModel(event: Event) {
-  model.value = (event.target as HTMLInputElement).value;
+function setSource(value: string) {
+  if (value === "codex" && !permission.value.granted) return;
+  settings.imageSource = value;
 }
 
-function hideIcon() {
-  settings.showStatusIcon = false;
+function commitModel(event: Event) {
+  const value = (event.target as HTMLInputElement).value.trim();
+  if (value && value !== settings.model) settings.model = value;
 }
 
 function ago(ms: number): string {
@@ -93,21 +91,35 @@ async function run(action: () => unknown) {
 
 <template>
   <div class="oi-panel">
-    <component :is="PluginCapabilityField" v-if="PluginCapabilityField" name="codex.images" />
-    <div v-else class="oi-grid">
-      <span class="oi-key">{{ t("mode.label") }}</span>
-      <span :title="t('mode.switchHint')">{{ onCodex ? t("mode.codex") : t("mode.apiKey") }}</span>
-    </div>
-    <p v-if="onCodex" class="oi-note">{{ t("mode.codexNote") }}</p>
+    <template v-if="permission.available">
+      <BaseSegmented
+        class="oi-source"
+        size="sm"
+        :aria-label="t('mode.label')"
+        :model-value="onCodex ? 'codex' : 'apiKey'"
+        :options="sourceOptions"
+        @update:model-value="setSource"
+      />
+      <p v-if="!permission.granted" class="oi-note">
+        {{ t("panel.codexLocked") }}
+        <button type="button" class="oi-link" :disabled="busy" @click="run(() => openSettings())">
+          {{ t("panel.allowCodex") }}
+        </button>
+      </p>
+    </template>
 
     <div class="oi-grid">
-      <template v-if="!onCodex">
+      <template v-if="onCodex">
+        <span class="oi-key">{{ t("panel.params") }}</span>
+        <span class="oi-value" :title="t('mode.codexNote')">{{ t("panel.paramsCodex") }}</span>
+      </template>
+      <template v-else>
         <label class="oi-key" for="openai-image-model">{{ t("panel.model") }}</label>
         <input
           id="openai-image-model"
           class="oi-input"
           list="openai-image-models"
-          :value="model"
+          :value="settings.model ?? ''"
           spellcheck="false"
           autocomplete="off"
           @change="commitModel"
@@ -141,6 +153,7 @@ async function run(action: () => unknown) {
         <span class="oi-key" :class="{ warn: !keyConfigured }">{{ t("panel.apiKey") }}</span>
         <PluginSecretField name="apiKey" />
       </template>
+
       <span class="oi-key" :title="t('panel.attachHint')">{{ t("panel.attach") }}</span>
       <BaseSwitch
         class="oi-switch"
@@ -148,26 +161,29 @@ async function run(action: () => unknown) {
         :aria-label="t('panel.attachHint')"
         @update:model-value="settings.attachToModel = $event"
       />
+
       <template v-if="current.running">
         <span class="oi-key oi-top">{{ t("panel.running") }}</span>
         <div class="oi-value">
           <div v-for="call in current.calls" :key="call.callId" class="oi-call">
-            <span>{{ call.message || t("status.generating") }}</span>
+            {{ call.message || t("status.generating") }}
             <div v-if="typeof call.progress === 'number'" class="oi-progress">
               <div class="oi-progress-bar" :style="{ width: `${Math.round(call.progress * 100)}%` }" />
             </div>
           </div>
         </div>
       </template>
+
       <span class="oi-key oi-top">{{ t("panel.last") }}</span>
-      <div v-if="current.last" class="oi-value" :class="{ 'is-error': current.last.isError }">
-        <div class="oi-last-summary">{{ lastSummary }}</div>
-        <div class="oi-meta">
-          {{ current.last.tool }} · {{ t(`panel.caller.${current.last.caller}`) }} ·
-          {{ t("panel.duration", (current.last.durationMs / 1000).toFixed(1)) }} · {{ ago(current.last.finishedAtMs) }}
-        </div>
+      <div v-if="current.last" class="oi-value" :title="lastSummary">
+        <span :class="current.last.isError ? 'oi-bad' : 'oi-good'">
+          {{ current.last.isError ? t("panel.lastFailed") : t("panel.lastOk") }}</span>
+        · {{ t(`panel.caller.${current.last.caller}`) }}
+        · {{ t("panel.duration", (current.last.durationMs / 1000).toFixed(1)) }}
+        · {{ ago(current.last.finishedAtMs) }}
+        <div v-if="current.last.isError" class="oi-last-error">{{ lastSummary }}</div>
       </div>
-      <div v-else class="oi-value oi-meta">{{ t("panel.lastNone") }}</div>
+      <span v-else class="oi-value oi-muted">{{ t("panel.lastNone") }}</span>
     </div>
 
     <p v-if="error" class="oi-error" role="alert">{{ error }}</p>
@@ -177,14 +193,6 @@ async function run(action: () => unknown) {
         {{ t("panel.openStudio") }}
       </BaseButton>
       <BaseButton size="sm" :disabled="busy" @click="run(() => openSettings())">{{ t("panel.settings") }}</BaseButton>
-    </div>
-    <div class="oi-footer">
-      <button type="button" class="oi-link" :title="t('panel.hideHint')" :disabled="busy" @click="hideIcon">
-        {{ t("panel.hide") }}
-      </button>
-      <button type="button" class="oi-link" :disabled="busy" @click="run(() => disableInWorkspace())">
-        {{ t("panel.disable") }}
-      </button>
     </div>
   </div>
 </template>
@@ -198,6 +206,14 @@ async function run(action: () => unknown) {
   font-size: 12px;
   color: var(--text-color);
 }
+.oi-source {
+  width: 100%;
+}
+/* Beats BaseSegmented's scoped `.size-sm .base-segmented-item`. */
+.oi-panel .oi-source :deep(.base-segmented-item) {
+  flex: 1 1 0;
+  padding: 0 8px;
+}
 .oi-grid {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -209,6 +225,34 @@ async function run(action: () => unknown) {
 }
 .oi-key.warn {
   color: var(--status-warn-fg);
+}
+/* Labels of multi-line values sit on their first line. */
+.oi-top {
+  align-self: start;
+  line-height: 1.45;
+}
+.oi-value {
+  min-width: 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.oi-good {
+  color: var(--status-good-fg);
+}
+.oi-bad {
+  color: var(--status-danger-fg);
+}
+.oi-muted {
+  color: var(--text-secondary);
+}
+.oi-last-error {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--status-danger-fg);
+  font-size: 11px;
 }
 .oi-note,
 .oi-hint,
@@ -249,26 +293,6 @@ async function run(action: () => unknown) {
 .oi-switch {
   justify-self: end;
 }
-/* Labels of multi-line values sit on their first line. */
-.oi-top {
-  align-self: start;
-  line-height: 1.45;
-}
-.oi-value {
-  min-width: 0;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-.oi-value.is-error .oi-last-summary {
-  color: var(--status-danger-fg);
-}
-.oi-meta {
-  color: var(--text-secondary);
-  font-size: 11px;
-}
-.oi-last-summary + .oi-meta {
-  margin-top: 2px;
-}
 .oi-call + .oi-call {
   margin-top: 4px;
 }
@@ -288,21 +312,15 @@ async function run(action: () => unknown) {
   display: flex;
   gap: 6px;
 }
-.oi-footer {
-  display: flex;
-  justify-content: space-between;
-  margin-top: -4px;
-}
 .oi-link {
   padding: 0;
   border: none;
   background: none;
-  color: var(--text-secondary);
+  color: var(--accent-color);
   font-size: 11px;
   cursor: pointer;
 }
 .oi-link:hover:not(:disabled) {
-  color: var(--text-color);
   text-decoration: underline;
 }
 </style>

@@ -13,7 +13,7 @@ Generate and edit images with the OpenAI Images API from Locus: the model gets t
   - The tool result lists the saved paths, the revised prompt and token usage. When "Show generated images to the model" is on, the images are attached too.
 - **Status icon** in the chat input
   - Colored like the built-in icons: green when image generation is usable, gray when the API key is missing, highlighted while a generation runs (by the model or in Image Studio), red after a failed call.
-  - The popover switches the image source between API key and Codex subscription (the switch is drawn by Locus and only shown while signed in to Codex), and has the common defaults, the API key field, the last result, and shortcuts to Image Studio, the full settings, hiding the icon, and disabling the plugin for the workspace.
+  - The popover switches the image source between API key and Codex subscription (shown while signed in to Codex) and has the common defaults, the API key field, the last result, and shortcuts to Image Studio and the full settings.
 - **Image Studio** View
   - Chat-style: each generation is a turn with the prompt and references on the right and the result on the left; images made by the model show up too.
   - The composer takes the prompt (Enter to send, Shift+Enter for a new line), references dragged from the file tree (a PNG reference can serve as the mask), and a toolbar with the model selector (grouped by family, or any model name), size (presets or any width × height), quality, background, format and count.
@@ -25,11 +25,11 @@ Generate and edit images with the OpenAI Images API from Locus: the model gets t
 2. Enable it for the workspace. It is off by default in every workspace.
 3. Choose how images are paid for:
    - **API key**: enter your OpenAI API key under Plugins → OpenAI Image → Settings, or in the image status icon. The key is kept in the system keychain and is only passed to this plugin's tools through stdin.
-   - **Codex subscription**: sign in to Codex with ChatGPT in Locus (a paid plan is required), then choose "Codex subscription" in the image status icon, or set "Image source" under Plugins → OpenAI Image → Settings (right below the model). Both are shown only while signed in to Codex. Only you can choose it (the agent and the plugin cannot); Locus keeps the sign-in and the plugin never receives it.
+   - **Codex subscription**: sign in to Codex with ChatGPT in Locus (a paid plan is required), then turn on "Allow this plugin to use your Codex subscription image quota" under Plugins → OpenAI Image → Settings. Only you can grant it (the agent and the plugin cannot); Locus keeps the sign-in and the plugin never receives it. With the permission granted, switch between API key and Codex subscription in the image status icon or with "Image source" in the settings (Codex subscription by default).
 
 ## Codex subscription mode
 
-While the permission is on, both tools and Image Studio generate on the subscription:
+With the image source on Codex subscription and the permission granted, both tools and Image Studio generate on the subscription:
 
 - The server picks the model, size and quality (currently 1536×1024) and returns one image; there are no partial previews.
 - Only the prompt, a transparent background and up to 5 reference images take effect. Masks are not available; a call with a mask or more than 5 references fails with an explanation instead of switching to the API key.
@@ -42,8 +42,9 @@ Turn the permission off to go back to the API key with all options.
 
 | Setting | Default | Scope |
 |---|---|---|
+| Image source | Codex subscription (used once the permission is granted, otherwise the API key) | App |
 | Model | `gpt-image-2.6-flare` | App |
-| API key | — (needed unless the Codex subscription is allowed) | App |
+| API key | — (needed unless the Codex subscription is used) | App |
 | API base URL | `https://api.openai.com/v1` | App |
 | Organization ID | empty | App |
 | Default size / quality / background / format | `auto` / `auto` / `auto` / `png` | App |

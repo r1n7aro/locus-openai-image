@@ -11,9 +11,9 @@
 //
 // Generation runs through view.plugin.tools.call (caller "view"), so it
 // streams partial images and shows up in the status icon like calls by the
-// model. When the user allowed the Codex subscription (Plugins → OpenAI
-// Image → Settings) the same tools run on it and the composer
-// only offers what the subscription honors. Finished turns come from
+// model. When the image source is the Codex subscription (the `imageSource`
+// setting, with the `codex.images` permission granted) the same tools run on
+// it and the composer only offers what the subscription honors. Finished turns come from
 // history.jsonl in the output folder, so images made by the model appear
 // here too; failed or cancelled turns stay until the View closes.
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from "vue";
@@ -244,8 +244,10 @@ const tab = ref<"chat" | "gallery">("chat");
 const settings = ref<Record<string, any>>({});
 const keyConfigured = ref(true);
 const modelSuggestions = ref<string[]>([]);
-/** The user allowed the Codex subscription for this plugin. */
-const onCodex = ref(false);
+/** The `codex.images` permission is granted and usable. */
+const codexUsable = ref(false);
+/** The source the tools use now (same rule as `usesCodex` in client/tools.ts). */
+const onCodex = computed(() => codexUsable.value && settings.value.imageSource !== "apiKey");
 /** Problems outside a turn (loading settings, copying a path). */
 const error = ref<string | null>(null);
 
@@ -258,7 +260,7 @@ function codexActive(list: any[]): boolean {
 async function loadCapabilities() {
   if (!plugin) return;
   const list = await plugin.capabilities.get();
-  onCodex.value = codexActive(list);
+  codexUsable.value = codexActive(list);
 }
 
 function applySize(value: string) {
@@ -928,7 +930,7 @@ onMounted(async () => {
   const [release, releaseGrants] = await Promise.all([
     plugin.settings.onChanged(() => { void loadSettings(); }),
     plugin.capabilities.onChanged((list: any[]) => {
-      onCodex.value = codexActive(list);
+      codexUsable.value = codexActive(list);
     }),
   ]);
   if (disposed) {

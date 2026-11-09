@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "openai-image",
   "name": "OpenAI Image",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "compatibility": {
     "projectIndependent": true,
     "locus": ">=0.9.3 <0.11.0"
@@ -12,19 +12,23 @@
   },
   "contributes": {
     "workspace": { "defaultEnablement": "disabled" },
-    "capabilities": [
-      {
-        "name": "codex.images",
-        "after": "model",
-        "title": { "en": "Image source", "zh": "生图方式" },
-        "labels": {
-          "off": { "en": "API key", "zh": "API Key" },
-          "on": { "en": "Codex subscription", "zh": "Codex 订阅" }
-        }
-      }
-    ],
+    "capabilities": [{ "name": "codex.images", "after": "imageSource" }],
     "toolHandler": { "entry": "client/tools.ts" },
     "settings": {
+      "imageSource": {
+        "type": "enum",
+        "enum": ["apiKey", "codex"],
+        "labels": {
+          "apiKey": { "en": "API key", "zh": "API Key" },
+          "codex": { "en": "Codex subscription", "zh": "Codex 订阅" }
+        },
+        "default": "codex",
+        "title": { "en": "Image source", "zh": "生图方式" },
+        "description": {
+          "en": "The Codex subscription also needs a Codex sign-in and the permission below; until then the API key is used. You can switch it in the image icon of the chat input too.",
+          "zh": "Codex 订阅还需要登录 Codex 并打开下方的授权，否则使用 API Key。也可以在输入栏的图片图标中切换。"
+        }
+      },
       "model": {
         "type": "string",
         "default": "gpt-image-2.6-flare",
@@ -174,7 +178,7 @@
         "loadMode": "lazy",
         "timeoutMs": 600000,
         "mutatesWorkspace": true,
-        "settings": ["apiKey", "baseUrl", "organization", "model", "defaultSize", "defaultQuality", "defaultBackground", "defaultFormat", "outputDir", "attachToModel"],
+        "settings": ["imageSource", "apiKey", "baseUrl", "organization", "model", "defaultSize", "defaultQuality", "defaultBackground", "defaultFormat", "outputDir", "attachToModel"],
         "parameters": {
           "type": "object",
           "properties": {
@@ -200,7 +204,7 @@
         "loadMode": "lazy",
         "timeoutMs": 600000,
         "mutatesWorkspace": true,
-        "settings": ["apiKey", "baseUrl", "organization", "model", "defaultSize", "defaultQuality", "defaultBackground", "defaultFormat", "outputDir", "attachToModel"],
+        "settings": ["imageSource", "apiKey", "baseUrl", "organization", "model", "defaultSize", "defaultQuality", "defaultBackground", "defaultFormat", "outputDir", "attachToModel"],
         "parameters": {
           "type": "object",
           "properties": {

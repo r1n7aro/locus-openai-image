@@ -1,10 +1,12 @@
 // Tool handler of openai-image (`contributes.toolHandler`). Locus hands each
 // `image_generate` / `image_edit` call to this module first:
-// - With "Image source: Codex subscription" (Plugins → OpenAI Image →
-//   Settings; offered only while signed in to Codex), the image is made on the user's
-//   Codex subscription through `call.images.generate`; Locus holds the
-//   sign-in and saves the file. The Python tool then only records it in
-//   history.jsonl and writes the reply, so both modes share one format.
+// - With the `imageSource` setting on "Codex subscription" (the default;
+//   switched in the status icon or under Plugins → OpenAI Image → Settings)
+//   and the `codex.images` permission granted while signed in to Codex, the
+//   image is made on the user's Codex subscription through
+//   `call.images.generate`; Locus holds the sign-in and saves the file. The
+//   Python tool then only records it in history.jsonl and writes the reply,
+//   so both modes share one format.
 // - Otherwise the Python tool runs as before with the API key, which only
 //   it receives (on stdin); this module never sees secret values.
 
@@ -68,7 +70,7 @@ function references(args: Args): string[] {
   if (paths.length > MAX_CODEX_REFERENCES) {
     throw new HandlerError(
       `The Codex subscription takes at most ${MAX_CODEX_REFERENCES} reference images, got ${paths.length}. `
-      + "Pass fewer, or set the image source to API key under Plugins → OpenAI Image → Settings.",
+      + "Pass fewer, or switch the image source to API key in the image status icon.",
     );
   }
   return paths;
@@ -80,7 +82,7 @@ async function onCodex(call: any, kind: "generate" | "edit", args: Args) {
   if (kind === "edit" && text(args.mask)) {
     throw new HandlerError(
       "Masks are not available on the Codex subscription. Describe the change in the prompt instead, "
-      + "or set the image source to API key under Plugins → OpenAI Image → Settings.",
+      + "or switch the image source to API key in the image status icon.",
     );
   }
   const images = kind === "edit" ? references(args) : undefined;
@@ -101,10 +103,18 @@ async function onCodex(call: any, kind: "generate" | "edit", args: Args) {
   return call.runProcess({ ...args, prompt, codexResult: { ...result, ignored } });
 }
 
+/**
+ * The Codex subscription when the user picked it (`imageSource`, default) and
+ * the permission is granted and usable; otherwise the API key.
+ */
+export function usesCodex(imageSource: unknown, granted: boolean): boolean {
+  return imageSource !== "apiKey" && granted;
+}
+
 export async function handle(call: any, kind: "generate" | "edit") {
   // `codexResult` is internal: never forwarded from the caller.
   const { codexResult: _internal, ...args } = (call.args ?? {}) as Args;
-  if (!call.capabilities.granted(CODEX_IMAGES)) return call.runProcess(args);
+  if (!usesCodex(call.settings?.imageSource, call.capabilities.granted(CODEX_IMAGES))) return call.runProcess(args);
   try {
     return await onCodex(call, kind, args);
   } catch (error) {
