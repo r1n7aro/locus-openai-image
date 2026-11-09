@@ -29,7 +29,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-VERSION = "0.2.2"
+VERSION = "0.2.3"
 USER_AGENT = f"locus-openai-image/{VERSION}"
 REQUEST_TIMEOUT_S = 540
 MAX_IMAGES = 4

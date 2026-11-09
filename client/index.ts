@@ -1,8 +1,10 @@
 // Client entry of openai-image: the image status icon of the chat input.
 // The icon reflects the plugin's tool activity in this workspace (calls by
-// the model and by Image Studio alike), the generation mode (Codex
+// the model and by Image Studio alike), the image source (Codex
 // subscription when the user allowed it, otherwise the API key) and whether
-// the API key is set; its popover holds the common defaults and shortcuts.
+// that source is set up; its colors follow the built-in icons (green usable,
+// gray not set up, accent while generating, red after a failure). The
+// popover switches the source and holds the common defaults and shortcuts.
 import { computed } from "vue";
 import { defineStatusItem } from "@locus/plugin-runtime";
 import StatusPanel from "./StatusPanel.vue";
@@ -21,12 +23,10 @@ export function apply(ctx: any) {
     defineStatusItem({
       state: () => computed(() => {
         const current = activity.value;
-        if (current.running) {
-          return { tone: "accent", busy: true, summary: current.message ?? t("status.generating") };
-        }
-        if (!codex.value && !apiKey.value.configured) return { tone: "warning", summary: t("status.missingKey") };
-        if (current.lastError) return { tone: "warning", summary: current.lastError };
-        return { tone: "neutral", summary: t(codex.value ? "status.idleCodex" : "status.idle") };
+        if (current.running) return { tone: "accent", busy: true, summary: t("status.generating") };
+        if (!codex.value && !apiKey.value.configured) return { tone: "muted", summary: t("status.missingKey") };
+        if (current.lastError) return { tone: "danger", summary: t("status.failed") };
+        return { tone: "success", summary: t(codex.value ? "status.readyCodex" : "status.readyApiKey") };
       }),
       panel: StatusPanel,
       inject: () => ({
