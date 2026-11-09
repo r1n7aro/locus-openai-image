@@ -21,7 +21,7 @@ const props = defineProps({
 const t = (key: string, ...args: unknown[]) => props.t(key, ...args) as string;
 const current = computed(() => (props.activity as any).value);
 const keyConfigured = computed(() => Boolean((props.apiKey as any).value?.configured));
-/** The user allowed the Codex subscription (Settings → Plugins → OpenAI Image). */
+/** The user allowed the Codex subscription (Plugins → OpenAI Image → Settings). */
 const onCodex = computed(() => Boolean((props.codex as any).value));
 const settings = props.settings as Record<string, any>;
 const error = ref<string | null>(null);

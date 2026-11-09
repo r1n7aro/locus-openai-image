@@ -1,7 +1,7 @@
 // Tool handler of openai-image (`contributes.toolHandler`). Locus hands each
 // `image_generate` / `image_edit` call to this module first:
-// - With "Allow this plugin to use your Codex subscription image quota" on
-//   (Settings → Plugins → OpenAI Image), the image is made on the user's
+// - With "Image source: Codex subscription" (Plugins → OpenAI Image →
+//   Settings; offered only while signed in to Codex), the image is made on the user's
 //   Codex subscription through `call.images.generate`; Locus holds the
 //   sign-in and saves the file. The Python tool then only records it in
 //   history.jsonl and writes the reply, so both modes share one format.
@@ -68,7 +68,7 @@ function references(args: Args): string[] {
   if (paths.length > MAX_CODEX_REFERENCES) {
     throw new HandlerError(
       `The Codex subscription takes at most ${MAX_CODEX_REFERENCES} reference images, got ${paths.length}. `
-      + "Pass fewer, or turn off the Codex subscription in Settings → Plugins → OpenAI Image to use the API key.",
+      + "Pass fewer, or set the image source to API key under Plugins → OpenAI Image → Settings.",
     );
   }
   return paths;
@@ -80,7 +80,7 @@ async function onCodex(call: any, kind: "generate" | "edit", args: Args) {
   if (kind === "edit" && text(args.mask)) {
     throw new HandlerError(
       "Masks are not available on the Codex subscription. Describe the change in the prompt instead, "
-      + "or turn off the Codex subscription in Settings → Plugins → OpenAI Image to use the API key.",
+      + "or set the image source to API key under Plugins → OpenAI Image → Settings.",
     );
   }
   const images = kind === "edit" ? references(args) : undefined;

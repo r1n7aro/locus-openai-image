@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "openai-image",
   "name": "OpenAI Image",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "compatibility": {
     "projectIndependent": true,
     "locus": ">=0.9.3 <0.11.0"
@@ -12,15 +12,42 @@
   },
   "contributes": {
     "workspace": { "defaultEnablement": "disabled" },
-    "capabilities": ["codex.images"],
+    "capabilities": [
+      {
+        "name": "codex.images",
+        "after": "model",
+        "title": { "en": "Image source", "zh": "生图方式" },
+        "labels": {
+          "off": { "en": "API key", "zh": "API Key" },
+          "on": { "en": "Codex subscription", "zh": "Codex 订阅" }
+        }
+      }
+    ],
     "toolHandler": { "entry": "client/tools.ts" },
     "settings": {
+      "model": {
+        "type": "string",
+        "default": "gpt-image-2.6-flare",
+        "maxLength": 128,
+        "suggestions": ["gpt-image-2.6-flare", "gpt-image-2.6-sunburst", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-2", "gpt-image-1.5", "gpt-image-1-mini", "chatgpt-image-latest"],
+        "labels": {
+          "gpt-image-2.6-flare": { "en": "Faster", "zh": "更快" },
+          "gpt-image-2.6-sunburst": { "en": "Higher quality", "zh": "质量更高" },
+          "gpt-image-2.5-flare": { "en": "Faster", "zh": "更快" },
+          "gpt-image-2.5-sunburst": { "en": "Higher quality", "zh": "质量更高" }
+        },
+        "title": { "en": "Model", "zh": "模型" },
+        "description": {
+          "en": "API key mode only. Flare is faster; Sunburst gives higher quality and steadier edits. On the Codex subscription the server picks the model.",
+          "zh": "仅 API Key 模式生效。Flare 更快，Sunburst 质量更高、编辑时更稳定。Codex 订阅模式由服务端决定模型。"
+        }
+      },
       "apiKey": {
         "type": "secret",
         "title": { "en": "API key", "zh": "API Key" },
         "description": {
-          "en": "OpenAI Platform API key. Stored in the system keychain and only passed to this plugin's tools. Not needed while the Codex subscription is allowed under Permissions below.",
-          "zh": "OpenAI Platform 的 API Key。保存在系统钥匙串中，只交给本插件的工具。在下方“授权”中允许使用 Codex 订阅时不需要。"
+          "en": "OpenAI Platform API key. Stored in the system keychain and only passed to this plugin's tools. Not needed while the image source above is the Codex subscription.",
+          "zh": "OpenAI Platform 的 API Key。保存在系统钥匙串中，只交给本插件的工具。上方生图方式选 Codex 订阅时不需要。"
         }
       },
       "baseUrl": {
@@ -43,31 +70,37 @@
           "zh": "选填。作为 OpenAI-Organization 请求头发送。"
         }
       },
-      "model": {
-        "type": "string",
-        "default": "gpt-image-2.6-flare",
-        "maxLength": 128,
-        "suggestions": ["gpt-image-2.6-flare", "gpt-image-2.6-sunburst", "gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-2", "gpt-image-1.5", "gpt-image-1-mini", "chatgpt-image-latest"],
-        "title": { "en": "Model", "zh": "模型" },
-        "description": {
-          "en": "API key mode only. Flare is faster; Sunburst gives higher quality and steadier edits. On the Codex subscription the server picks the model.",
-          "zh": "仅 API Key 模式生效。Flare 更快，Sunburst 质量更高、编辑时更稳定。Codex 订阅模式由服务端决定模型。"
-        }
-      },
       "defaultSize": {
         "type": "string",
         "default": "auto",
         "maxLength": 16,
-        "suggestions": ["auto", "1024x1024", "1536x1024", "1024x1536"],
+        "suggestions": ["auto", "1024x1024", "1536x1024", "1024x1536", "1536x864", "864x1536", "3840x2160"],
+        "labels": {
+          "auto": { "en": "Auto", "zh": "自动" },
+          "1024x1024": { "en": "Square", "zh": "方形" },
+          "1536x1024": { "en": "Landscape 3:2", "zh": "横向 3:2" },
+          "1024x1536": { "en": "Portrait 2:3", "zh": "纵向 2:3" },
+          "1536x864": { "en": "16:9 · gpt-image-2 / 2.5", "zh": "16:9 · gpt-image-2 / 2.5" },
+          "864x1536": { "en": "9:16 · gpt-image-2 / 2.5", "zh": "9:16 · gpt-image-2 / 2.5" },
+          "3840x2160": { "en": "4K 16:9 · gpt-image-2 / 2.5", "zh": "4K 16:9 · gpt-image-2 / 2.5" }
+        },
         "title": { "en": "Default size", "zh": "默认尺寸" },
         "description": {
-          "en": "API key mode only. auto, 1024x1024, 1536x1024, 1024x1536, or WIDTHxHEIGHT where the model supports it. On the Codex subscription the server picks the size.",
-          "zh": "仅 API Key 模式生效。auto、1024x1024、1536x1024、1024x1536，或模型支持时的 宽x高。Codex 订阅模式由服务端决定尺寸。"
+          "en": "API key mode only. Every model takes the first four sizes; gpt-image-2 and the 2.5 models also take any WIDTHxHEIGHT (both sides divisible by 16, aspect ratio between 1:3 and 3:1, at most 3840x2160). On the Codex subscription the server picks the size.",
+          "zh": "仅 API Key 模式生效。所有模型都支持前四项；gpt-image-2 和 2.5 系列还支持任意 宽x高（两边为 16 的倍数，宽高比在 1:3 到 3:1 之间，最大 3840x2160）。Codex 订阅模式由服务端决定尺寸。"
         }
       },
       "defaultQuality": {
         "type": "enum",
         "enum": ["auto", "low", "medium", "high", "xhigh", "max"],
+        "labels": {
+          "auto": { "en":  "Auto",  "zh":  "自动" },
+          "low": { "en":  "Low",  "zh":  "低" },
+          "medium": { "en":  "Medium",  "zh":  "中" },
+          "high": { "en":  "High",  "zh":  "高" },
+          "xhigh": { "en":  "Extra high",  "zh":  "很高" },
+          "max": { "en":  "Max",  "zh":  "最高" }
+        },
         "default": "auto",
         "title": { "en": "Default quality", "zh": "默认质量" },
         "description": {
@@ -78,6 +111,11 @@
       "defaultBackground": {
         "type": "enum",
         "enum": ["auto", "opaque", "transparent"],
+        "labels": {
+          "auto": { "en":  "Auto",  "zh":  "自动" },
+          "opaque": { "en":  "Opaque",  "zh":  "不透明" },
+          "transparent": { "en":  "Transparent",  "zh":  "透明" }
+        },
         "default": "auto",
         "title": { "en": "Default background", "zh": "默认背景" },
         "description": {
@@ -88,6 +126,11 @@
       "defaultFormat": {
         "type": "enum",
         "enum": ["png", "jpeg", "webp"],
+        "labels": {
+          "png": "PNG",
+          "jpeg": "JPEG",
+          "webp": "WebP"
+        },
         "default": "png",
         "title": { "en": "Default format", "zh": "默认格式" },
         "description": {

@@ -306,7 +306,7 @@ class OpenAIImageToolTests(unittest.TestCase):
         run = self.run_tool("generate", {"prompt": "x"}, settings=self.settings(apiKey=None))
         self.assertTrue(run.is_error)
         self.assertIn("API key is not set", run.text)
-        self.assertIn("Settings → Plugins → OpenAI Image", run.text)
+        self.assertIn("Plugins → OpenAI Image → Settings", run.text)
         self.assertEqual(self.server.requests, [])
 
     def test_http_errors_carry_status_and_message(self) -> None:

@@ -15,17 +15,17 @@ Generate and edit images with the OpenAI Images API from Locus: the model gets t
   - Shows whether a generation is running (by the model or in Image Studio), whether the API key is missing, and the last error.
   - The popover has the common defaults, the API key field, the last result, and shortcuts to Image Studio, the full settings, hiding the icon, and disabling the plugin for the workspace.
 - **Image Studio** View
-  - Prompt (Ctrl+Enter to generate), model, size, quality, background, format, count.
-  - Drag images from the file tree to use them as references; a PNG reference can serve as the mask.
-  - Partial previews while generating, cancellation, and a gallery of earlier results (copy path, use as reference, reuse prompt).
+  - Chat-style: each generation is a turn with the prompt and references on the right and the result on the left; images made by the model show up too.
+  - The composer takes the prompt (Enter to send, Shift+Enter for a new line), references dragged from the file tree (a PNG reference can serve as the mask), and a toolbar with the model selector (grouped by family, or any model name), size (presets or any width × height), quality, background, format and count.
+  - Partial previews while generating, stop and retry; per result: edit this image, reuse settings, copy path. A gallery tab lists every image.
 
 ## Setup
 
 1. Install the plugin (Plugins → install from a local folder or this repository).
 2. Enable it for the workspace. It is off by default in every workspace.
 3. Choose how images are paid for:
-   - **API key**: enter your OpenAI API key in Settings → Plugins → OpenAI Image, or in the image status icon. The key is kept in the system keychain and is only passed to this plugin's tools through stdin.
-   - **Codex subscription**: sign in to Codex with ChatGPT in Locus (a paid plan is required), then turn on "Allow this plugin to use your Codex subscription image quota" under Permissions on the plugin's settings page. Only you can turn it on; Locus keeps the sign-in and the plugin never receives it.
+   - **API key**: enter your OpenAI API key under Plugins → OpenAI Image → Settings, or in the image status icon. The key is kept in the system keychain and is only passed to this plugin's tools through stdin.
+   - **Codex subscription**: sign in to Codex with ChatGPT in Locus (a paid plan is required), then set "Image source" to "Codex subscription" under Plugins → OpenAI Image → Settings (right below the model; shown only while signed in to Codex). Only you can choose it (the agent and the plugin cannot); Locus keeps the sign-in and the plugin never receives it.
 
 ## Codex subscription mode
 
@@ -42,16 +42,24 @@ Turn the permission off to go back to the API key with all options.
 
 | Setting | Default | Scope |
 |---|---|---|
+| Model | `gpt-image-2.6-flare` | App |
 | API key | — (needed unless the Codex subscription is allowed) | App |
 | API base URL | `https://api.openai.com/v1` | App |
 | Organization ID | empty | App |
-| Model | `gpt-image-2.6-flare` | App |
 | Default size / quality / background / format | `auto` / `auto` / `auto` / `png` | App |
 | Output folder | `Locus/generated/images` | Project |
 | Show generated images to the model | on | App |
 | Show the status icon in the chat input | on | App |
 
-The model is a free-form setting with suggestions (including the 2.5 / 2.6 Flare and Sunburst models), so newer models can be used without a plugin update. Image Studio and the status icon point out combinations a model may reject: `xhigh` / `max` quality is only documented for the 2.5 models, custom sizes for `gpt-image-2` and the 2.5 models, and transparent backgrounds are a preview on `gpt-image-2`.
+The model is a free-form setting with suggestions (including the 2.5 / 2.6 Flare and Sunburst models), so newer models can be used without a plugin update. Image Studio and the status icon point out combinations a model may reject: `xhigh` / `max` quality is only documented for the 2.5 models, and transparent backgrounds are a preview on `gpt-image-2`.
+
+### Sizes
+
+- Every model takes `auto`, `1024x1024`, `1536x1024` and `1024x1536`.
+- `gpt-image-2` and the 2.5 models also take any `WIDTHxHEIGHT` with both sides divisible by 16, an aspect ratio between 1:3 and 3:1, and at most 3840×2160 (for example `1536x864`). The documentation does not list custom sizes for the 2.6 models.
+- On the Codex subscription the server picks the size.
+
+These rules are hints only: the API decides, and its error is shown as is.
 
 ## Requirements
 

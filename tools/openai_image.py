@@ -29,7 +29,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 USER_AGENT = f"locus-openai-image/{VERSION}"
 REQUEST_TIMEOUT_S = 540
 MAX_IMAGES = 4
@@ -45,7 +45,7 @@ FIXED_SIZES = ("auto", "1024x1024", "1536x1024", "1024x1536")
 SIZE_PATTERN = re.compile(r"^[1-9][0-9]{1,4}x[1-9][0-9]{1,4}$")
 EXTENSIONS = {"png": "png", "jpeg": "jpg", "webp": "webp"}
 UPLOAD_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-SETTINGS_HINT = "Settings → Plugins → OpenAI Image, or the image icon in the chat input"
+SETTINGS_HINT = "Plugins → OpenAI Image → Settings, or the image icon in the chat input"
 
 
 class ToolError(Exception):
